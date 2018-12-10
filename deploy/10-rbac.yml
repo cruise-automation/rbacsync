@@ -1,0 +1,63 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rbacsync
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: rbacsync
+rules:
+
+# We only need to read our config types. They are created by the user.
+- apiGroups: ["rbacsync.getcruise.com"]
+  resources: [
+    "rbacsyncconfigs",
+    "clusterrbacsyncconfigs"
+    ]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["clusterrolebindings", "rolebindings"]
+  verbs: [
+    "get", "list", "watch", "create", "update", "patch", "delete",
+
+    # "escalate" is not supported until Kuberenetes 1.12. When deploying to
+    # 1.12, you can comment out the '*' configs, which privde cluster-admin and
+    # just use the confuration called out here.
+    #
+    # This is ignored prior to 1.12.
+    #
+    # See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#privilege-escalation-prevention-and-bootstrapping for details.
+    "escalate"] 
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"] 
+
+# This section is required to allow rbacsync to escalate privileges to
+# cluster-admin. Without this, rbacsync will only be able to create roles with
+# equal or lesser privileges. This part should be removed for clusters 1.12 and
+# higher.
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- nonResourceURLs:
+  - '*'
+  verbs:
+  - '*'
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: rbacsync
+subjects:
+- kind: ServiceAccount
+  name: rbacsync
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: rbacsync
+  apiGroup: "rbac.authorization.k8s.io"

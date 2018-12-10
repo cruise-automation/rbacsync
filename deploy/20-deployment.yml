@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rbacsync
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rbacsync
+  template:
+    metadata:
+      labels:
+        app: rbacsync
+    spec:
+      restartPolicy: Always
+      serviceAccountName: rbacsync
+      containers:
+      - name: rbacsync
+        image: gcr.io/cruise-gcr-dev/rbacsync:latest
+        ports:
+        - name: metrics
+          containerPort: 8080
+        command:
+        - /bin/rbacsync
+        args:
+        - "-logtostderr"
+        imagePullPolicy: Always
+        ports:
+        - name: debug-port
+          containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: debug-port
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: debug-port

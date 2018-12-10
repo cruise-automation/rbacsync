@@ -1,0 +1,99 @@
+apiVersion: rbacsync.getcruise.com/v1alpha
+kind: ClusterRBACSyncConfig
+metadata:
+  name: example
+spec:
+  bindings:
+  # This group is defined locally. It will match against the memberships
+  # declared below.
+  - group: cluster-admin-group
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: cluster-admin
+
+  # This group is not declared below and won't have members unless a group
+  # upstream is configured.
+  - group: mygroup-admin@getcruise.com
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: cluster-admin
+
+  # This group is improperly declared as a Role, instead of a ClusterRole.
+  # This will result in a failure event when creating this binding.
+  - group: someother-group
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+        kind: Role
+      name: someother-role
+
+  # Define group memberships directly
+  memberships:
+  - group: cluster-admin-group
+    subjects:
+    - kind: User
+      name: a@getcruise.com
+      apiGroup: rbac.authorization.k8s.io
+    - kind: User
+      name: b@getcruise.com
+      apiGroup: rbac.authorization.k8s.io
+    - kind: User
+      name: c@getcruise.com
+  - group: someother-group
+    subjects:
+    - kind: User
+      name: a@getcruise.com
+      apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbacsync.getcruise.com/v1alpha
+kind: RBACSyncConfig
+metadata:
+  name: example
+  namespace: default # namespace is required for RBACSyncConfig
+spec:
+  bindings:
+  # Locally defined group that will pickup membership configuration from below.
+  - group: namespace-admin-group
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: namespace-admin
+  # It's okay to have non-existent group. This allows predeclarations and
+  # staged rollout.
+  - group: someother-group
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: someother-role
+  # For this group, we both declare memberships and source it from the
+  # upstream, creating a merged group. This allows for testing, verification or
+  # other situations where the upstream may not be as flexible as one might
+  # like.
+  - group: my-merged-group@getcruise.com
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: someother-role
+
+  # Define group memberships directly
+  memberships:
+  - group: my-merged-group@getcruise.com
+    subjects:
+    - kind: User
+      # This person will be included, even though they may not be a part of the
+      # group in the upstream.
+      name: extra@getcruise.com
+      apiGroup: rbac.authorization.k8s.io
+  - group: namespace-admin-group
+    subjects:
+    - kind: User
+      name: a@getcruise.com
+      apiGroup: rbac.authorization.k8s.io
+    - kind: User
+      name: b@getcruise.com
+      apiGroup: rbac.authorization.k8s.io
+    - kind: User
+      name: c@getcruise.com
+      apiGroup: rbac.authorization.k8s.io
