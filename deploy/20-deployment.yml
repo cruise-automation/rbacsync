@@ -16,7 +16,7 @@ spec:
       serviceAccountName: rbacsync
       containers:
       - name: rbacsync
-        image: gcr.io/cruise-gcr-dev/rbacsync:latest
+        image: cruise/rbacsync:latest
         ports:
         - name: metrics
           containerPort: 8080

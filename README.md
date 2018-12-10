@@ -293,7 +293,7 @@ to use the secret created above:
 +          secretName: rbacsync-gsuite-credentials
        containers:
        - name: rbacsync
-         image: gcr.io/cruise-gcr-dev/rbacsync:latest
+         image: cruise/rbacsync:latest
 @@ -24,6 +28,14 @@
          - /bin/rbacsync
          args:
@@ -407,7 +407,7 @@ If you are working on changes that require rbacsync to be running in a cluster,
 such as when checking whether operations will work correctly, you can use the
 `deploy` target.  To test in a cluster, the following can be run:
 
-	make REGISTRY=gcr.io/cruise-gcr-dev/rbacsync/ deploy
+	make REGISTRY=cruise/ deploy
 
 The above will build the image, push it to a registry, apply the CRDs
 and deployment to the kubernetes context and update the deployment to
