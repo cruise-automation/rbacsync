@@ -1,5 +1,7 @@
 ![RBACSync](project/images/logo-horizontal.png)
 
+[![Build Status](https://travis-ci.org/cruise-automation/rbacsync.svg?branch=master)](https://travis-ci.org/cruise-automation/rbacsync)
+
 * [Usage](#usage)
   + [Custom Resources](#custom-resources)
     - [Bindings](#bindings)
