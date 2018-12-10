@@ -1,0 +1,21 @@
+dist: bionic
+services:
+- docker
+
+language: go
+
+go:
+- "1.11.x"
+
+go_import_path: github.com/cruise-automation/rbacsync
+
+install:
+- go get -u github.com/vbatts/git-validation
+- go get -u github.com/kunalkushwaha/ltag
+- go get -u github.com/LK4D4/vndr
+
+script:
+- GIT_CHECK_EXCLUDE="./vendor" git-validation -q -run DCO,short-subject,dangling-whitespace
+# TODO(stevvooe): Add vendor check validation.
+- make build
+- make test
