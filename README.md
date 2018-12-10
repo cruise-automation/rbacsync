@@ -1,5 +1,23 @@
 ![RBACSync](project/images/logo-horizontal.png)
 
+* [Usage](#usage)
+  + [Custom Resources](#custom-resources)
+    - [Bindings](#bindings)
+    - [Memberships](#memberships)
+  + [Configuration](#configuration)
+    - [Enabling GSuite Group Configuration](#enabling-gsuite-group-configuration)
+  + [Deployment](#deployment)
+* [Development](#development)
+  + [Building](#building)
+  + [Local Development](#local-development)
+* [In Cluster Development](#in-cluster-development)
+* [Release Process](#release-process)
+  + [Tagging your release](#tagging-your-release)
+  + [Pushing your release tag](#pushing-your-release-tag)
+  + [Create your release in Github](#create-your-release-in-github)
+* [License](#license)
+* [Contributions](#contributions)
+
 This project provides a Kubernetes controller to synchronize RoleBindings and
 ClusterRoleBindings, used in [Kubernetes RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/),
 from group membership sources using consolidated configuration objects. The
