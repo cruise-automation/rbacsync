@@ -1,6 +1,6 @@
 ![RBACSync](project/images/logo-horizontal.png)
 
-[![Build Status](https://travis-ci.org/cruise-automation/rbacsync.svg?branch=master)](https://travis-ci.org/cruise-automation/rbacsync)
+[![Build Status](https://travis-ci.org/cruise-automation/rbacsync.svg?branch=master)](https://travis-ci.org/cruise-automation/rbacsync) [![Docker Automated Build](https://img.shields.io/docker/automated/cruise/rbacsync.svg?logo=docker)](https://hub.docker.com/r/cruise/rbacsync/)
 
 * [Usage](#usage)
   + [Custom Resources](#custom-resources)
