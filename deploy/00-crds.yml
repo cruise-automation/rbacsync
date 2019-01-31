@@ -8,7 +8,7 @@ spec:
     kind: RBACSyncConfig
     plural: rbacsyncconfigs
     singular: rbacsyncconfig
-    shortnames:
+    shortNames:
       - rsc
   scope: Namespaced
   version: v1alpha
@@ -24,7 +24,7 @@ spec:
     kind: ClusterRBACSyncConfig
     plural: clusterrbacsyncconfigs
     singular: clusterrbacsyncconfig
-    shortnames:
+    shortNames:
       - crsc
   scope: Cluster
   version: v1alpha
