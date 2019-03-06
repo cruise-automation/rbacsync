@@ -109,7 +109,9 @@ func (g *Grouper) Members(group string) ([]rbacv1.Subject, error) {
 	ctx := context.TODO()
 	client, err := g.service(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(groups.ErrUnknown,
+		"unable to determine group members, an error occurred creating gsuite client: %v",
+		err)
 	}
 
 	var (
@@ -131,11 +133,17 @@ func (g *Grouper) Members(group string) ([]rbacv1.Subject, error) {
 			return nil
 		}); err != nil {
 
-		if isNotFound(err) {
+		switch {
+		case isNotFound(err):
 			return nil, errors.Wrapf(groups.ErrNotFound, "gsuite does not have group: %v", err)
+		case isTimeout(tctx):
+			return nil, errors.Wrapf(groups.ErrTimeout, "timeout calling gsuite api: %v", err)
+		case isCanceled(tctx):
+			return nil, errors.Wrapf(groups.ErrCanceled, "the context canceled the call to gsuite: %v", err)
+		default:
+			return nil, errors.Wrapf(groups.ErrUnknown, "error retrieving group members: %v", err)
 		}
 
-		return nil, err
 	}
 
 	// If you're trying to find some nasty memory allocation, it might be here.
@@ -151,4 +159,14 @@ func (g *Grouper) service(ctx context.Context) (*admin.Service, error) {
 func isNotFound(err error) bool {
 	e, ok := err.(*googleapi.Error)
 	return ok && e.Code == http.StatusNotFound
+}
+
+func isTimeout(ctx context.Context) bool {
+	e := ctx.Err()
+	return e == context.DeadlineExceeded
+}
+
+func isCanceled(ctx context.Context) bool {
+	e := ctx.Err()
+	return e == context.Canceled
 }
