@@ -123,9 +123,13 @@ For namespace-scoped `RBACSyncConfig`, the behavior is nearly identical except
 for the following:
 
 1. `RBACSyncConfig` must be defined with a namespace.
-2. `RBACSyncConfig` can only reference `Roles`.
-3. All `RoleBindings` created as a result of the `RBACSyncConfig` will be in
+2. All `RoleBindings` created as a result of the `RBACSyncConfig` will be in
    the same namespace.
+
+`RBACSyncConfig` may reference a `ClusterRole` to grant permissions to
+namespaced resources defined in the `ClusterRole` within the `RoleBinding`’s
+namespace. This allows administrators to define a set of common roles for the
+entire cluster, then reuse them within multiple namespaces.
 
 When deciding between using the two, you should mostly only need to look at
 whether your assigning `ClusterRoles` or `Roles` and then use the equivalent

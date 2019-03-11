@@ -337,10 +337,12 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 	active := map[string]struct{}{}
 
 	for _, binding := range config.Spec.Bindings {
-		// need to valdiate that we only create rolebindings with this configuration.
-		if binding.RoleRef.Kind != "Role" {
+		switch binding.RoleRef.Kind {
+		case "Role", "ClusterRole":
+			// valid role reference kind for the role binding.
+		default:
 			c.recorder.Eventf(config, corev1.EventTypeWarning,
-				EventReasonBindingError, "RoleRef kind %q invalid for RBACSyncConfig on group %q, use only Role",
+				EventReasonBindingError, "RoleRef kind %q invalid for RBACSyncConfig on group %q, use only Role or ClusterRole",
 				binding.RoleRef.Kind, binding.Group)
 			continue
 		}

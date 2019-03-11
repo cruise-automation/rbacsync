@@ -63,6 +63,29 @@ func TestControllerRBACSyncConfig(t *testing.T) {
 			},
 		},
 
+		// Ensure that we can bind cluster roles.
+		{
+			input: newRBACSyncConfig("testing", "clusterrole",
+				[]rbacsyncv1alpha.Membership{
+					newMembership("group0",
+						[]rbacv1.Subject{
+							newUserSubject("user0"),
+							newUserSubject("user1"),
+						}),
+				},
+				[]rbacsyncv1alpha.Binding{
+					newBinding("group0", "role0", "Role"),
+					newBinding("group0", "role1", "ClusterRole"),
+					newBinding("upstream", "role0", "Role"),
+				}),
+			events: []string{
+				"Normal ConfigEnqueued RBACSyncConfig testing/clusterrole enqueued",
+				"Normal BindingConfigured RoleBinding testing/clusterrole-group0-role0 configured",
+				"Normal BindingConfigured RoleBinding testing/clusterrole-group0-role1 configured",
+				"Normal BindingConfigured RoleBinding testing/clusterrole-upstream-role0 configured",
+			},
+		},
+
 		// Ensure that we can reference a role in two separate bindings.
 		{
 			input: newRBACSyncConfig("testing", "duplicates",
@@ -105,16 +128,13 @@ func TestControllerRBACSyncConfig(t *testing.T) {
 				},
 				[]rbacsyncv1alpha.Binding{
 					newBinding("group0", "role0", "Role"),
-
-					// This will cause a failure event because we cannot
-					// create clusterroles from the non-cluster version.
-					newBinding("group0", "role1", "ClusterRole"),
+					newBinding("group0", "role1", "ThisRoleTypeDoesNotExist"),
 					newBinding("upstream", "role0", "Role"),
 				}),
 			events: []string{
 				"Normal ConfigEnqueued RBACSyncConfig testing/invalidrole enqueued",
 				"Normal BindingConfigured RoleBinding testing/invalidrole-group0-role0 configured",
-				"Warning BindingError RoleRef kind \"ClusterRole\" invalid for RBACSyncConfig on group \"group0\", use only Role",
+				"Warning BindingError RoleRef kind \"ThisRoleTypeDoesNotExist\" invalid for RBACSyncConfig on group \"group0\", use only Role or ClusterRole",
 				"Normal BindingConfigured RoleBinding testing/invalidrole-upstream-role0 configured",
 			},
 		},
@@ -504,7 +524,9 @@ func makeExpectedRoleBindings(t *testing.T, config *rbacsyncv1alpha.RBACSyncConf
 
 	seen := map[string]struct{}{}
 	for _, binding := range config.Spec.Bindings {
-		if binding.RoleRef.Kind != "Role" {
+		switch binding.RoleRef.Kind {
+		case "Role", "ClusterRole":
+		default:
 			// these are skipped
 			continue
 		}
