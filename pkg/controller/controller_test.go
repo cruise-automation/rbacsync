@@ -18,6 +18,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"testing"
 	"time"
 
@@ -441,32 +442,226 @@ func TestControllerClusterRBACSyncConfigNoLeaks(t *testing.T) {
 		"bindings should have been cleaned up")
 }
 
+// TestControllerRBACSyncConfigGrouperError ensures that when the groupers return a
+// error they are handled correctly.
+//
+// The test creates two rolebindings group0->role0 & group1->role1.
+// The three times they are evaluated they:
+// 1) Both succeed as normal.
+// 2) group1 has an error calling GSuite with ErrTimeout and does not modify the binding.
+// 3) group1 succeeds again, adding a new member,
+//    group0 fails with a ErrNotFound, causing it to remove upstream0 user and
+//      leaving the ones from Membership in the CRD.
+func TestControllerRBACSyncConfigGrouperError(t *testing.T) {
+	var (
+		stopCh = make(chan struct{})
+		rsc    = newRBACSyncConfig("testing", "grouper-error",
+			[]rbacsyncv1alpha.Membership{
+				newMembership("group0",
+					[]rbacv1.Subject{
+						newUserSubject("user0"),
+						newUserSubject("user1"),
+					}),
+			},
+			[]rbacsyncv1alpha.Binding{
+				newBinding("group0", "role0", "Role"),
+				newBinding("group1", "role1", "Role"),
+			})
+	)
+	defer close(stopCh)
+
+	// Both groups are looked up normally and succeed.
+	grouper := stubGrouper{map[string]grouperResult{
+		"group0": {[]rbacv1.Subject{newUserSubject("upstream0")}, nil},
+		"group1": {[]rbacv1.Subject{newUserSubject("upstream1")}, nil},
+	}}
+	ctlr := newTestControllerWithGrouper(t, stopCh, grouper)
+
+	created, err := ctlr.rbacsyncclient.RBACSyncV1alpha().RBACSyncConfigs(rsc.Namespace).Create(rsc)
+	checks.Err(t, err)
+
+	events := collectEvents(t, ctlr)
+
+	rbs, err := ctlr.kubeclient.RbacV1().RoleBindings(rsc.Namespace).List(metav1.ListOptions{})
+	checks.Err(t, err)
+
+	expected := makeExpectedRoleBindings(t, created, ctlr.resolveGroups(created.Spec.Memberships))
+	checks.DeepEqual(t, expected, rbs.Items, "created cluster role bindings don't match expected")
+	checks.DeepEqual(t, []string{
+		"Normal ConfigEnqueued RBACSyncConfig testing/grouper-error enqueued",
+		"Normal BindingConfigured RoleBinding testing/grouper-error-group0-role0 configured",
+		"Normal BindingConfigured RoleBinding testing/grouper-error-group1-role1 configured",
+	}, events, "observed events mismatched")
+
+	// Change group1 to fail with a ErrTimeout, the memberships should not be deleted.
+	grouper.results["group1"] = grouperResult{nil, errors.Wrap(groups.ErrTimeout, "failed to reach gSuite")}
+
+	ctlr.pollRBACSyncConfigs()
+
+	events = collectEvents(t, ctlr)
+
+	rbs, err = ctlr.kubeclient.RbacV1().RoleBindings(rsc.Namespace).List(metav1.ListOptions{})
+	checks.Err(t, err)
+
+	// Add the subject back in for generating the expected result.
+	grouper.results["group1"] = grouperResult{[]rbacv1.Subject{newUserSubject("upstream1")}, nil}
+	expected = makeExpectedRoleBindings(t, created, ctlr.resolveGroups(created.Spec.Memberships))
+	checks.DeepEqual(t, expected, rbs.Items, "created cluster role bindings don't match expected")
+	checks.DeepEqual(t, []string{
+		"Normal ConfigEnqueued RBACSyncConfig testing/grouper-error enqueued",
+		"Normal BindingConfigured RoleBinding testing/grouper-error-group0-role0 configured",
+		"Warning BindingError group group1 lookup failed: unknown error fetching group members: failed to reach gSuite: timeout retrieving memberships",
+	}, events, "observed events mismatched")
+
+	// group0 no longer exists, should remove upstream0 from the binding.
+	// Add upstream2 to group1 which will add the User Subject to the binding.
+	grouper.results["group0"] = grouperResult{nil, errors.Wrap(groups.ErrNotFound, "group not found in gsuite")}
+	grouper.results["group1"] = grouperResult{[]rbacv1.Subject{newUserSubject("upstream1"), newUserSubject("upstream2")}, nil}
+
+	ctlr.pollRBACSyncConfigs()
+
+	events = collectEvents(t, ctlr)
+
+	rbs, err = ctlr.kubeclient.RbacV1().RoleBindings(rsc.Namespace).List(metav1.ListOptions{})
+	checks.Err(t, err)
+
+	expected = makeExpectedRoleBindings(t, created, ctlr.resolveGroups(created.Spec.Memberships))
+	checks.DeepEqual(t, expected, rbs.Items, "created cluster role bindings don't match expected")
+	checks.DeepEqual(t, []string{
+		"Normal ConfigEnqueued RBACSyncConfig testing/grouper-error enqueued",
+		"Normal BindingConfigured RoleBinding testing/grouper-error-group0-role0 configured",
+		"Normal BindingConfigured RoleBinding testing/grouper-error-group1-role1 configured",
+	}, events, "observed events mismatched")
+}
+
+// TestsResolveGroups tests the internal resolveGroups controller method to ensure correct behavior.
+// This is being done since the method is called directly from the tests as a helper in generating
+// the expected values.
+func TestResolveGroups(t *testing.T) {
+	var (
+		stopCh = make(chan struct{})
+		rsc    = newRBACSyncConfig("testing", "grouper-error",
+			[]rbacsyncv1alpha.Membership{
+				newMembership("group0",
+					[]rbacv1.Subject{
+						newUserSubject("user0"),
+						newUserSubject("user1"),
+					}),
+				newMembership("group1",
+					[]rbacv1.Subject{
+						newUserSubject("user0"),
+					}),
+				newMembership("group3",
+					[]rbacv1.Subject{
+						newUserSubject("user0"),
+					}),
+			},
+			[]rbacsyncv1alpha.Binding{
+				newBinding("group0", "role0", "Role"),
+				newBinding("group1", "role1", "Role"),
+			})
+
+		cases = []struct {
+			description      string
+			group            string
+			expectedSubjects []string
+			expectedErr      error
+		}{
+			{
+				"defined memberships, upstream succeeds",
+				"group0",
+				[]string{"upstream0", "user0", "user1"},
+				nil,
+			},
+			{
+				"defined memberships, upstream does not exist",
+				"group1",
+				[]string{"user0"},
+				nil,
+			},
+			{
+				"upstream only",
+				"group2",
+				[]string{"upstream1"},
+				nil,
+			},
+			{
+				"defined memberships, upstream temporary error",
+				"group3",
+				nil,
+				groups.ErrUnknown,
+			},
+		}
+	)
+	defer close(stopCh)
+
+	// Both groups are looked up normally and succeed.
+	grouper := stubGrouper{map[string]grouperResult{
+		"group0": {[]rbacv1.Subject{newUserSubject("upstream0")}, nil},
+		"group2": {[]rbacv1.Subject{newUserSubject("upstream1")}, nil},
+		"group3": {nil, errors.Wrap(groups.ErrUnknown, "temporary error")},
+	}}
+
+	ctlr := newTestControllerWithGrouper(t, stopCh, grouper)
+
+	created, err := ctlr.rbacsyncclient.RBACSyncV1alpha().RBACSyncConfigs(rsc.Namespace).Create(rsc)
+	checks.Err(t, err)
+
+	resolvedGrouper := ctlr.resolveGroups(created.Spec.Memberships)
+	for _, tc := range cases {
+		groupMembers, err := resolvedGrouper.Members(tc.group)
+		switch tc.expectedErr {
+		case groups.ErrUnknown, groups.ErrCanceled, groups.ErrTimeout:
+			if !groups.IsUnknownMemberships(err) {
+				t.Errorf("resolved Members err was not temporary got '%v'", err)
+			}
+		case groups.ErrNotFound:
+			if !groups.IsNotFound(err) {
+				t.Errorf("resolved Members err was not an ErrNotFound got '%v'", err)
+			}
+		default:
+			checks.Err(t, err)
+		}
+		var expected []rbacv1.Subject = nil
+		if tc.expectedSubjects != nil {
+			expected = make([]rbacv1.Subject, len(tc.expectedSubjects), len(tc.expectedSubjects))
+			for i, s := range tc.expectedSubjects {
+				expected[i] = newUserSubject(s)
+			}
+		}
+		checks.DeepEqual(t, expected, groupMembers, "resolved groups do not match expected for %s", tc.description)
+	}
+}
+
 var (
 	alwaysReady = func() bool { return true }
 )
 
-func newTestController(t *testing.T, stopCh <-chan struct{}) *Controller {
+type grouperResult struct {
+	members []rbacv1.Subject
+	err     error
+}
+
+type stubGrouper struct {
+	results map[string]grouperResult
+}
+
+func (g stubGrouper) Members(group string) ([]rbacv1.Subject, error) {
+	if result, ok := g.results[group]; ok {
+		return result.members, result.err
+	}
+	return nil, groups.ErrNotFound
+}
+
+func newTestControllerWithGrouper(t *testing.T, stopCh <-chan struct{}, grouper groups.Grouper) *Controller {
 	kubeclient := fake.NewSimpleClientset()
 	rbacsyncclient := rsfake.NewSimpleClientset()
-
-	upstream := groups.GroupMap{
-		// every group0 is augmented with an upstream user
-		"group0": {
-			newUserSubject("upstream0"),
-		},
-		// we also define an upstream group that gets referenced.
-		"upstream": {
-			newUserSubject("upstream0"),
-			newUserSubject("upstream1"),
-			newUserSubject("upstream2"),
-		},
-	}
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeclient, 0)
 	informerFactory := informers.NewSharedInformerFactory(rbacsyncclient, 0)
 	ctlr := NewController(
 		kubeclient, rbacsyncclient,
-		upstream,
+		grouper,
 		0, // disable the poller for testing
 		informerFactory.RBACSync().V1alpha().RBACSyncConfigs(),
 		informerFactory.RBACSync().V1alpha().ClusterRBACSyncConfigs(),
@@ -481,6 +676,23 @@ func newTestController(t *testing.T, stopCh <-chan struct{}) *Controller {
 	go ctlr.Run(stopCh)
 
 	return ctlr
+
+}
+
+func newTestController(t *testing.T, stopCh <-chan struct{}) *Controller {
+	upstream := groups.GroupMap{
+		// every group0 is augmented with an upstream user
+		"group0": {
+			newUserSubject("upstream0"),
+		},
+		// we also define an upstream group that gets referenced.
+		"upstream": {
+			newUserSubject("upstream0"),
+			newUserSubject("upstream1"),
+			newUserSubject("upstream2"),
+		},
+	}
+	return newTestControllerWithGrouper(t, stopCh, upstream)
 }
 
 // makeExpectedRoleBindings creates a set of role bindings from the config.
@@ -515,7 +727,8 @@ func makeExpectedRoleBindings(t *testing.T, config *rbacsyncv1alpha.RBACSyncConf
 				// skip non-existent groups
 				continue
 			}
-			t.Fatal(err) // causes test failure for now, but we could look for an event
+			continue
+			//t.Fatal(err) // causes test failure for now, but we could look for an event
 		}
 
 		if len(members) == 0 {
@@ -573,7 +786,8 @@ func makeExpectedClusterRoleBindings(t *testing.T, config *rbacsyncv1alpha.Clust
 				// skip non-existent groups
 				continue
 			}
-			t.Fatal(err) // causes test failure for now, but we could look for an event
+			continue
+			//t.Fatal(err) // causes test failure for now, but we could look for an event
 		}
 
 		if len(members) == 0 {

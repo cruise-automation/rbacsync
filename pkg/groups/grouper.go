@@ -23,15 +23,40 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
-// ErrNotFound us used by Grouper implementations to signal a group is not
+// ErrNotFound is used by Grouper implementations to signal a group is not
 // found. Can be used as the cause in errors.Wrap if more context is required.
 //
 // Use IsNotFound to detect this condition.
 var ErrNotFound = fmt.Errorf("not found")
 
+// ErrTimeout is used by Grouper implementations to signal the grouper was
+// unable to retrieve the memberships before the timeout was exceeded.
+var ErrTimeout = fmt.Errorf("timeout retrieving memberships")
+
+// ErrCanceled is used by Grouper implementations when the request was canceled
+// before the group memberships could be determined.
+var ErrCanceled = fmt.Errorf("cancled request for memberships")
+
+// ErrUnknown is used by Grouper implementations to signal there was an
+// error retrieving the group information with an unknown root cause.
+// Can be used as the cause in errors.Wrap if more context is required.
+var ErrUnknown = fmt.Errorf("temporary error determining membership")
+
 // IsNotFound returns true if the case of the error is ErrNotFound.
 func IsNotFound(err error) bool {
 	return errors.Cause(err) == ErrNotFound
+}
+
+// IsUnknownMemberships returns true if it is an intermittent error and should not change the memberships.
+// Errors in the of this type may (timeouts) or may not resolve themselves (authentication issues).
+// They indicate that the response data received is not reflective of the actual memberships.
+func IsUnknownMemberships(err error) bool {
+	switch errors.Cause(err) {
+	case ErrUnknown, ErrTimeout, ErrCanceled:
+		return true
+	default:
+		return false
+	}
 }
 
 // Grouper returns the members of a group, as RBAC Subjects, given a group
