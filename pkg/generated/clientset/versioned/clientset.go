@@ -28,8 +28,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	RBACSyncV1alpha() rbacsyncv1alpha.RBACSyncV1alphaInterface
-	// Deprecated: please explicitly pick a version if possible.
-	RBACSync() rbacsyncv1alpha.RBACSyncV1alphaInterface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -41,12 +39,6 @@ type Clientset struct {
 
 // RBACSyncV1alpha retrieves the RBACSyncV1alphaClient
 func (c *Clientset) RBACSyncV1alpha() rbacsyncv1alpha.RBACSyncV1alphaInterface {
-	return c.rBACSyncV1alpha
-}
-
-// Deprecated: RBACSync retrieves the default version of RBACSyncClient.
-// Please explicitly pick a version.
-func (c *Clientset) RBACSync() rbacsyncv1alpha.RBACSyncV1alphaInterface {
 	return c.rBACSyncV1alpha
 }
 
