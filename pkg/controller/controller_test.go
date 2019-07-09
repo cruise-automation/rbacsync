@@ -19,6 +19,7 @@ package controller
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 	"testing"
 	"time"
 
@@ -34,6 +35,10 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/record"
 )
+
+func init() {
+	klog.InitFlags(nil)
+}
 
 // TestControllerRBACSyncConfig runs the controller round trip for
 // RBACSyncConfig objects, ensuring that the correct rolebindings are created

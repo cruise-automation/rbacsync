@@ -131,7 +131,7 @@ func (c *FakeRBACSyncConfigs) DeleteCollection(options *v1.DeleteOptions, listOp
 // Patch applies the patch and returns the patched rBACSyncConfig.
 func (c *FakeRBACSyncConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha.RBACSyncConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(rbacsyncconfigsResource, c.ns, name, data, subresources...), &v1alpha.RBACSyncConfig{})
+		Invokes(testing.NewPatchSubresourceAction(rbacsyncconfigsResource, c.ns, name, pt, data, subresources...), &v1alpha.RBACSyncConfig{})
 
 	if obj == nil {
 		return nil, err

@@ -123,7 +123,7 @@ func (c *FakeClusterRBACSyncConfigs) DeleteCollection(options *v1.DeleteOptions,
 // Patch applies the patch and returns the patched clusterRBACSyncConfig.
 func (c *FakeClusterRBACSyncConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha.ClusterRBACSyncConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(clusterrbacsyncconfigsResource, name, data, subresources...), &v1alpha.ClusterRBACSyncConfig{})
+		Invokes(testing.NewRootPatchSubresourceAction(clusterrbacsyncconfigsResource, name, pt, data, subresources...), &v1alpha.ClusterRBACSyncConfig{})
 	if obj == nil {
 		return nil, err
 	}

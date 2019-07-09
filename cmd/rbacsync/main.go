@@ -28,10 +28,9 @@ import (
 	"time"
 
 	"github.com/cruise-automation/rbacsync/version"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -39,6 +38,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 
 	"github.com/cruise-automation/rbacsync/pkg/controller"
 	clientset "github.com/cruise-automation/rbacsync/pkg/generated/clientset/versioned"
@@ -92,6 +92,7 @@ func init() {
 }
 
 func main() {
+	klog.InitFlags(nil)
 	flag.Parse()
 
 	if baseFlags.showVersion {
@@ -101,17 +102,17 @@ func main() {
 
 	config, err := resolveConfig(baseFlags.kubeconfig)
 	if err != nil {
-		glog.Fatalf("unable to resolve kube configuration: %v", err)
+		klog.Fatalf("unable to resolve kube configuration: %v", err)
 	}
 
 	kubeclient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		glog.Fatalln(err)
+		klog.Fatalln(err)
 	}
 
 	rbacsyncclient, err := clientset.NewForConfig(config)
 	if err != nil {
-		glog.Fatalln("error making config", err)
+		klog.Fatalln("error making config", err)
 	}
 
 	// TODO(sday): Setup the CRDs here, rather than relying on them existing.
@@ -127,7 +128,7 @@ func main() {
 			gsuiteFlags.pattern,
 			gsuiteFlags.timeout)
 		if err != nil {
-			glog.Fatalf("failed to configure gsuite: %v", err)
+			klog.Fatalf("failed to configure gsuite: %v", err)
 		}
 	} else {
 		grouper = groups.Empty
@@ -156,11 +157,11 @@ func main() {
 		http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("ok"))
 		})
-		glog.Fatal(http.ListenAndServe(baseFlags.debugAddr, nil))
+		klog.Fatal(http.ListenAndServe(baseFlags.debugAddr, nil))
 	}()
 
 	if err := ctlr.Run(stopCh); err != nil {
-		glog.Fatalf("error running controller: %s", err)
+		klog.Fatalf("error running controller: %s", err)
 	}
 }
 

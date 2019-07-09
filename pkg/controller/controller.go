@@ -18,9 +18,9 @@ package controller
 
 import (
 	"fmt"
+	"k8s.io/klog"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -107,7 +107,7 @@ func NewController(
 ) *Controller {
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclient.CoreV1().Events("")})
 
 	c := &Controller{
@@ -169,9 +169,9 @@ func NewController(
 func (c *Controller) Run(stopCh <-chan struct{}) error {
 	defer c.queue.ShutDown()
 
-	glog.Info("starting controller")
+	klog.Info("starting controller")
 
-	glog.Info("synchronize informer cache")
+	klog.Info("synchronize informer cache")
 	if ok := cache.WaitForCacheSync(stopCh,
 		c.rbacSyncConfigsSynced,
 		c.clusterRBACSyncConfigsSynced,
@@ -180,25 +180,25 @@ func (c *Controller) Run(stopCh <-chan struct{}) error {
 		return errors.New("failed to sync informer cache")
 	}
 
-	glog.Info("starting workers")
+	klog.Info("starting workers")
 	go wait.Until(makeWorker(c.queue, func(key string) {
-		glog.Infof("encountered %q", key)
+		klog.Infof("encountered %q", key)
 		namespace, name, err := cache.SplitMetaNamespaceKey(key)
 		if err != nil {
-			glog.Infof("key split failed %q: %v", key, err)
+			klog.Infof("key split failed %q: %v", key, err)
 			runtimeutil.HandleError(err)
 			return
 		}
 
 		config, err := c.rbacSyncConfigLister.RBACSyncConfigs(namespace).Get(name)
 		if err != nil {
-			glog.Infof("failed listing %q: %v", key, err)
+			klog.Infof("failed listing %q: %v", key, err)
 			runtimeutil.HandleError(errors.Wrapf(err, "unknown item %q in RBACSyncConfig queue", key))
 			return
 		}
 
 		if err := c.handleConfig(config); err != nil {
-			glog.Infof("error %q: %v", key, err)
+			klog.Infof("error %q: %v", key, err)
 			runtimeutil.HandleError(errors.Wrapf(err, "error handling item %q in RBACSyncConfig queue", key))
 			return
 		}
@@ -224,14 +224,14 @@ func (c *Controller) Run(stopCh <-chan struct{}) error {
 	}), time.Second, stopCh)
 
 	if c.pollPeriod > 0 {
-		glog.Infof("starting pollers with %v interval", c.pollPeriod)
+		klog.Infof("starting pollers with %v interval", c.pollPeriod)
 		go wait.Until(c.pollRBACSyncConfigs, c.pollPeriod, stopCh)
 		go wait.Until(c.pollClusterRBACSyncConfigs, c.pollPeriod, stopCh)
 	}
 
-	glog.Info("accepting updates")
+	klog.Info("accepting updates")
 	<-stopCh
-	glog.Info("shutting down")
+	klog.Info("shutting down")
 
 	return nil
 }
@@ -270,7 +270,7 @@ func (c *Controller) enqueue(obj interface{}) {
 
 	o, ok := obj.(runtime.Object)
 	if !ok {
-		glog.Warningf("attempt to enqueue unsupported object %#v", obj)
+		klog.Warningf("attempt to enqueue unsupported object %#v", obj)
 		return
 	}
 
@@ -281,7 +281,7 @@ func (c *Controller) enqueue(obj interface{}) {
 	case *rbacsyncv1alpha.ClusterRBACSyncConfig:
 		c.clusterqueue.AddRateLimited(key)
 	default:
-		glog.Warningf("ignoring object of type %T: %#v", obj, obj)
+		klog.Warningf("ignoring object of type %T: %#v", obj, obj)
 		return // skip event emit below
 	}
 
@@ -294,11 +294,11 @@ func (c *Controller) enqueue(obj interface{}) {
 // them in the queue for reconsideration ensuring that their groups get rebuilt
 // from upstream sources periodically.
 func (c *Controller) pollRBACSyncConfigs() {
-	glog.Info("polling RBACSyncConfigs for group updates")
+	klog.Info("polling RBACSyncConfigs for group updates")
 	rscs, err := c.rbacSyncConfigLister.List(labels.Everything())
 	if err != nil {
 		msg := "failed listing RBACSyncConfigs in poller"
-		glog.Errorf(msg+": %v", err)
+		klog.Errorf(msg+": %v", err)
 		runtimeutil.HandleError(errors.Wrapf(err, msg))
 	}
 
@@ -308,11 +308,11 @@ func (c *Controller) pollRBACSyncConfigs() {
 }
 
 func (c *Controller) pollClusterRBACSyncConfigs() {
-	glog.Info("polling ClusterRBACSyncConfigs for group updates")
+	klog.Info("polling ClusterRBACSyncConfigs for group updates")
 	crscs, err := c.clusterRBACSyncConfigLister.List(labels.Everything())
 	if err != nil {
 		msg := "failed listing ClusterRBACSyncConfigs in poller"
-		glog.Errorf(msg+": %v", err)
+		klog.Errorf(msg+": %v", err)
 		runtimeutil.HandleError(errors.Wrapf(err, msg))
 	}
 
@@ -434,7 +434,7 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 		if !metav1.IsControlledBy(rb, config) {
 			// Here we just have a bug in our label selection logic. Log it and
 			// fix it.
-			glog.Errorf("%v/%v selected by query but not owned by RBACSyncConfig %v/%v",
+			klog.Errorf("%v/%v selected by query but not owned by RBACSyncConfig %v/%v",
 				rb.Namespace, rb.Name,
 				config.Namespace, config.Name)
 			continue
@@ -594,7 +594,7 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 		if !metav1.IsControlledBy(crb, config) {
 			// Here we just have a bug in our label selection logic. Log it and
 			// fix it.
-			glog.Errorf("%v selected by query but not owned by ClusterRBACSyncConfig %v",
+			klog.Errorf("%v selected by query but not owned by ClusterRBACSyncConfig %v",
 				crb.Name, config.Name)
 			continue
 		}

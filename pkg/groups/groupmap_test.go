@@ -17,11 +17,16 @@
 package groups
 
 import (
+	"k8s.io/klog"
 	"testing"
 
 	"github.com/cruise-automation/rbacsync/pkg/checks"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
+
+func init() {
+	klog.InitFlags(nil)
+}
 
 func TestNewGroupMap(t *testing.T) {
 	m := map[string][]rbacv1.Subject{
