@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,9 +18,6 @@ spec:
       containers:
       - name: rbacsync
         image: cruise/rbacsync:latest
-        ports:
-        - name: metrics
-          containerPort: 8080
         command:
         - /bin/rbacsync
         args:
@@ -27,6 +25,8 @@ spec:
         imagePullPolicy: Always
         ports:
         - name: debug-port
+          containerPort: 8080
+        - name: metrics
           containerPort: 8080
         livenessProbe:
           httpGet:
