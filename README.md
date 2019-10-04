@@ -263,7 +263,7 @@ To setup this account, you'll need to take the following steps:
 
    Please refer to the GSuite documentation, as the exact process for doing
    this may have changed.
-2. Create a GCP service account in the project where you're interested in using the GSuite "robot" account. Enable [G
+2. Create a GCP service account in the GCP project where you're interested in using the GSuite "robot" account. Enable [G
    Suite Domain-wide Delegation](https://developers.google.com/identity/protocols/OAuth2ServiceAccount#delegatingauthority) and note the Client ID.
 3. Using the "security" component in the "admin.google.com" console, use the
    Client ID for the service account and add the following scopes, which are
