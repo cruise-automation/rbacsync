@@ -263,18 +263,14 @@ To setup this account, you'll need to take the following steps:
 
    Please refer to the GSuite documentation, as the exact process for doing
    this may have changed.
-2. Create an IAM Binding for the "robot" user in your GCP project to the
-   "Service Account User" (`roles/iam.serviceAccountUser`) role. The exact
-   project to use will depend on your environment but the only requirement is
-   that it can house the service account that we use for access.
-3. Create a GCP service account in the same project used in step 2. Enable the "G
-   Suite Domain-wide Delegation" check box and note the Client ID.
-4. Using the "security" component in the "admin.google.com" console, use the
+2. Create a GCP service account in the project where you're interested in using the GSuite "robot" account. Enable [G
+   Suite Domain-wide Delegation](https://developers.google.com/identity/protocols/OAuth2ServiceAccount#delegatingauthority) and note the Client ID.
+3. Using the "security" component in the "admin.google.com" console, use the
    Client ID for the service account and add the following scopes, which are
    the same as those from step 1:
 	- https://www.googleapis.com/auth/admin.directory.group.member.readonly
 	- https://www.googleapis.com/auth/admin.directory.group.readonly
-5. Generate the service account credentials. Make sure to save the generated
+4. Generate the service account credentials. Make sure to save the generated
    JSON file somewhere safe.
 
 Once we have the account setup we can modify the deployment to allow `rbacsync`
