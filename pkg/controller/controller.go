@@ -18,7 +18,6 @@ package controller
 
 import (
 	"fmt"
-	"k8s.io/klog"
 	"time"
 
 	"github.com/pkg/errors"
@@ -41,6 +40,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	rbacsyncv1alpha "github.com/cruise-automation/rbacsync/pkg/apis/rbacsync/v1alpha"
 	clientset "github.com/cruise-automation/rbacsync/pkg/generated/clientset/versioned"
@@ -48,6 +48,7 @@ import (
 	informers "github.com/cruise-automation/rbacsync/pkg/generated/informers/externalversions/rbacsync/v1alpha"
 	listers "github.com/cruise-automation/rbacsync/pkg/generated/listers/rbacsync/v1alpha"
 	"github.com/cruise-automation/rbacsync/pkg/groups"
+	"github.com/cruise-automation/rbacsync/pkg/metrics"
 )
 
 const (
@@ -55,9 +56,18 @@ const (
 )
 
 const (
+	MetricsRBACSyncConfig        = "RBACSyncConfig"
+	MetricsRBACSyncClusterConfig = "RBACSyncClusterConfig"
+
+	MetricsRoleBinding        = "RoleBinding"
+	MetricsClusterRoleBinding = "ClusterRoleBinding"
+)
+
+const (
 	EventReasonConfigEnqueued    = "ConfigEnqueued"
 	EventReasonBindingConfigured = "BindingConfigured"
 	EventReasonBindingDeleted    = "BindingDeleted"
+	EventReasonBindingDuplicated = "BindingDuplicated"
 	EventReasonBindingError      = "BindingError"
 	EventReasonUnknownGroup      = "UnknownGroup"
 )
@@ -278,8 +288,10 @@ func (c *Controller) enqueue(obj interface{}) {
 	switch obj.(type) {
 	case *rbacsyncv1alpha.RBACSyncConfig:
 		c.queue.AddRateLimited(key)
+		metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncConfig, EventReasonConfigEnqueued).Inc()
 	case *rbacsyncv1alpha.ClusterRBACSyncConfig:
 		c.clusterqueue.AddRateLimited(key)
+		metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncClusterConfig, EventReasonConfigEnqueued).Inc()
 	default:
 		klog.Warningf("ignoring object of type %T: %#v", obj, obj)
 		return // skip event emit below
@@ -344,6 +356,7 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 			c.recorder.Eventf(config, corev1.EventTypeWarning,
 				EventReasonBindingError, "RoleRef kind %q invalid for RBACSyncConfig on group %q, use only Role or ClusterRole",
 				binding.RoleRef.Kind, binding.Group)
+			metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncConfig, EventReasonBindingError).Inc()
 			continue
 		}
 
@@ -354,9 +367,11 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 			if groups.IsNotFound(err) {
 				c.recorder.Eventf(config, corev1.EventTypeWarning,
 					EventReasonUnknownGroup, "group %v not found", binding.Group)
+				metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncConfig, EventReasonUnknownGroup).Inc()
 			} else if groups.IsUnknownMemberships(err) {
 				c.recorder.Eventf(config, corev1.EventTypeWarning,
 					EventReasonBindingError, "group %v lookup failed: %v", binding.Group, err)
+				metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncConfig, EventReasonBindingError).Inc()
 				// An error occurred looking up the groups, it should be marked as active
 				// so the rolebindings are not deleted in the cleanup.
 				active[name] = struct{}{}
@@ -369,6 +384,7 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 			c.recorder.Eventf(config, corev1.EventTypeWarning,
 				EventReasonBindingError, "%v/%v has no members for group %v",
 				config.Namespace, config.Name, binding.Group)
+			metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncConfig, EventReasonBindingError).Inc()
 			continue
 		}
 
@@ -378,7 +394,8 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 			// result will be the same. Accordingly, we log the bad
 			// configuration and move on.
 			c.recorder.Eventf(config, corev1.EventTypeWarning,
-				EventReasonBindingError, "duplicate binding %v ignored", name)
+				EventReasonBindingDuplicated, "duplicate binding %v ignored", name)
+			metrics.RBACSyncBindingStatus.WithLabelValues(MetricsRoleBinding, EventReasonBindingDuplicated).Inc()
 			continue
 		}
 
@@ -403,6 +420,7 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 			c.recorder.Eventf(config, corev1.EventTypeWarning,
 				EventReasonBindingError, "unable to update or create RoleBinding %v/%v: %v",
 				rb.Namespace, rb.Name, err)
+			metrics.RBACSyncBindingStatus.WithLabelValues(MetricsRoleBinding, EventReasonBindingError).Inc()
 			continue
 		}
 
@@ -416,7 +434,7 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 		c.recorder.Eventf(config, corev1.EventTypeNormal,
 			EventReasonBindingConfigured,
 			"RoleBinding %v/%v configured", created.Namespace, created.Name)
-
+		metrics.RBACSyncBindingStatus.WithLabelValues(MetricsRoleBinding, EventReasonBindingConfigured).Inc()
 	}
 
 	selector, err := buildChildSelector(config.Name)
@@ -451,6 +469,7 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 					EventReasonBindingError,
 					"RoleBinding %v/%v could not be deleted: %v",
 					rb.Namespace, rb.Name, err)
+				metrics.RBACSyncBindingStatus.WithLabelValues(MetricsRoleBinding, EventReasonBindingError).Inc()
 				continue
 			}
 
@@ -459,6 +478,7 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 
 		c.recorder.Eventf(config, corev1.EventTypeNormal,
 			EventReasonBindingDeleted, "RoleBinding %v/%v deleted", rb.Namespace, rb.Name)
+		metrics.RBACSyncBindingStatus.WithLabelValues(MetricsRoleBinding, EventReasonBindingDeleted).Inc()
 	}
 
 	return nil
@@ -507,6 +527,7 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 			c.recorder.Eventf(config, corev1.EventTypeWarning,
 				EventReasonBindingError, "RoleRef kind %q invalid for ClusterRBACSyncConfig on group %q, use only ClusterRole",
 				binding.RoleRef.Kind, binding.Group)
+			metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncClusterConfig, EventReasonBindingError).Inc()
 			continue
 		}
 		name := config.Name + "-" + binding.Group + "-" + binding.RoleRef.Name
@@ -516,9 +537,11 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 			if groups.IsNotFound(err) {
 				c.recorder.Eventf(config, corev1.EventTypeWarning,
 					EventReasonUnknownGroup, "group %v not found", binding.Group)
+				metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncClusterConfig, EventReasonUnknownGroup).Inc()
 			} else if groups.IsUnknownMemberships(err) {
 				c.recorder.Eventf(config, corev1.EventTypeWarning,
 					EventReasonBindingError, "group %v lookup failed: %v", binding.Group, err)
+				metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncClusterConfig, EventReasonBindingError).Inc()
 				// In the case of unknown memberships from the grouper, we want to keep what already exists
 				// so we mark the binding as active.
 				active[name] = struct{}{}
@@ -531,6 +554,7 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 			c.recorder.Eventf(config, corev1.EventTypeWarning,
 				EventReasonBindingError, "%v has no members for group %v",
 				config.Name, binding.Group)
+			metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncClusterConfig, EventReasonBindingError).Inc()
 			continue
 		}
 
@@ -540,7 +564,8 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 			// result will be the same. Accordingly, we log the bad
 			// configuration and move on.
 			c.recorder.Eventf(config, corev1.EventTypeWarning,
-				EventReasonBindingError, "duplicate binding %v ignored", name)
+				EventReasonBindingDuplicated, "duplicate binding %v ignored", name)
+			metrics.RBACSyncBindingStatus.WithLabelValues(MetricsClusterRoleBinding, EventReasonBindingDuplicated).Inc()
 			continue
 		}
 
@@ -564,6 +589,7 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 			c.recorder.Eventf(config, corev1.EventTypeWarning,
 				EventReasonBindingError,
 				"unable to update or create ClusterRoleBinding %v: %v", crb.Name, err)
+			metrics.RBACSyncBindingStatus.WithLabelValues(MetricsClusterRoleBinding, EventReasonBindingError).Inc()
 			continue
 		}
 
@@ -577,6 +603,7 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 		c.recorder.Eventf(config, corev1.EventTypeNormal,
 			EventReasonBindingConfigured,
 			"ClusterRoleBinding %v configured", created.Name)
+		metrics.RBACSyncBindingStatus.WithLabelValues(MetricsClusterRoleBinding, EventReasonBindingConfigured).Inc()
 	}
 
 	selector, err := buildChildSelector(config.Name)
@@ -609,6 +636,7 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 				c.recorder.Eventf(config, corev1.EventTypeWarning,
 					EventReasonBindingError,
 					"ClusterRoleBinding %v could not be deleted: %v", crb.Name, err)
+				metrics.RBACSyncBindingStatus.WithLabelValues(MetricsClusterRoleBinding, EventReasonBindingError).Inc()
 				continue
 			}
 
@@ -617,6 +645,7 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 
 		c.recorder.Eventf(config, corev1.EventTypeNormal,
 			EventReasonBindingDeleted, "ClusterRoleBinding %v deleted", crb.Name)
+		metrics.RBACSyncBindingStatus.WithLabelValues(MetricsClusterRoleBinding, EventReasonBindingDeleted).Inc()
 	}
 
 	return nil
