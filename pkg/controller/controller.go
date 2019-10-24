@@ -68,6 +68,7 @@ const (
 	EventReasonBindingConfigured = "BindingConfigured"
 	EventReasonBindingDeleted    = "BindingDeleted"
 	EventReasonBindingDuplicated = "BindingDuplicated"
+	EventReasonBindingWarning    = "BindingWarning"
 	EventReasonBindingError      = "BindingError"
 	EventReasonUnknownGroup      = "UnknownGroup"
 )
@@ -382,9 +383,9 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 
 		if len(members) == 0 {
 			c.recorder.Eventf(config, corev1.EventTypeWarning,
-				EventReasonBindingError, "%v/%v has no members for group %v",
+				EventReasonBindingWarning, "%v/%v has no members for group %v",
 				config.Namespace, config.Name, binding.Group)
-			metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncConfig, EventReasonBindingError).Inc()
+			metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncConfig, EventReasonBindingWarning).Inc()
 			continue
 		}
 

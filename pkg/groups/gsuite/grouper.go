@@ -145,7 +145,7 @@ func (g *Grouper) Members(group string) ([]rbacv1.Subject, error) {
 			metrics.RBACSyncGsuiteMembersStatus.WithLabelValues("Timeout").Inc()
 			return nil, errors.Wrapf(groups.ErrTimeout, "timeout calling gsuite api: %v", err)
 		case isCanceled(tctx):
-			metrics.RBACSyncGsuiteMembersStatus.WithLabelValues("Cancled").Inc()
+			metrics.RBACSyncGsuiteMembersStatus.WithLabelValues("Canceled").Inc()
 			return nil, errors.Wrapf(groups.ErrCanceled, "the context canceled the call to gsuite: %v", err)
 		default:
 			metrics.RBACSyncGsuiteMembersStatus.WithLabelValues("Unknown").Inc()
