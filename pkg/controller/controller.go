@@ -57,7 +57,7 @@ const (
 
 const (
 	MetricsRBACSyncConfig        = "RBACSyncConfig"
-	MetricsRBACSyncClusterConfig = "RBACSyncClusterConfig"
+	MetricsClusterRBACSyncConfig = "ClusterRBACSyncConfig"
 
 	MetricsRoleBinding        = "RoleBinding"
 	MetricsClusterRoleBinding = "ClusterRoleBinding"
@@ -292,7 +292,7 @@ func (c *Controller) enqueue(obj interface{}) {
 		metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncConfig, EventReasonConfigEnqueued).Inc()
 	case *rbacsyncv1alpha.ClusterRBACSyncConfig:
 		c.clusterqueue.AddRateLimited(key)
-		metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncClusterConfig, EventReasonConfigEnqueued).Inc()
+		metrics.RBACSyncConfigStatus.WithLabelValues(MetricsClusterRBACSyncConfig, EventReasonConfigEnqueued).Inc()
 	default:
 		klog.Warningf("ignoring object of type %T: %#v", obj, obj)
 		return // skip event emit below
@@ -528,7 +528,7 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 			c.recorder.Eventf(config, corev1.EventTypeWarning,
 				EventReasonBindingError, "RoleRef kind %q invalid for ClusterRBACSyncConfig on group %q, use only ClusterRole",
 				binding.RoleRef.Kind, binding.Group)
-			metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncClusterConfig, EventReasonBindingError).Inc()
+			metrics.RBACSyncConfigStatus.WithLabelValues(MetricsClusterRBACSyncConfig, EventReasonBindingError).Inc()
 			continue
 		}
 		name := config.Name + "-" + binding.Group + "-" + binding.RoleRef.Name
@@ -538,11 +538,11 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 			if groups.IsNotFound(err) {
 				c.recorder.Eventf(config, corev1.EventTypeWarning,
 					EventReasonUnknownGroup, "group %v not found", binding.Group)
-				metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncClusterConfig, EventReasonUnknownGroup).Inc()
+				metrics.RBACSyncConfigStatus.WithLabelValues(MetricsClusterRBACSyncConfig, EventReasonUnknownGroup).Inc()
 			} else if groups.IsUnknownMemberships(err) {
 				c.recorder.Eventf(config, corev1.EventTypeWarning,
 					EventReasonBindingError, "group %v lookup failed: %v", binding.Group, err)
-				metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncClusterConfig, EventReasonBindingError).Inc()
+				metrics.RBACSyncConfigStatus.WithLabelValues(MetricsClusterRBACSyncConfig, EventReasonBindingError).Inc()
 				// In the case of unknown memberships from the grouper, we want to keep what already exists
 				// so we mark the binding as active.
 				active[name] = struct{}{}
@@ -553,9 +553,9 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 
 		if len(members) == 0 {
 			c.recorder.Eventf(config, corev1.EventTypeWarning,
-				EventReasonBindingError, "%v has no members for group %v",
+				EventReasonBindingWarning, "%v has no members for group %v",
 				config.Name, binding.Group)
-			metrics.RBACSyncConfigStatus.WithLabelValues(MetricsRBACSyncClusterConfig, EventReasonBindingError).Inc()
+			metrics.RBACSyncConfigStatus.WithLabelValues(MetricsClusterRBACSyncConfig, EventReasonBindingWarning).Inc()
 			continue
 		}
 

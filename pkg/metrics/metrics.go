@@ -26,7 +26,7 @@ var (
 		Help: "Total number of the status of calls to gsuite with labels for state",
 	}, []string{"status"})
 	RBACSyncGsuiteMembersLatency = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name: "rbacsync_gsuite_members_latency",
+		Name: "rbacsync_gsuite_members_latency_duration_seconds",
 		Help: "The amount of time the calls to gsuite for group memberships",
 	})
 )
