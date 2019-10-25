@@ -21,7 +21,7 @@ var (
 	}, []string{"kind", "status"})
 	RBACSyncBindingStatus = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "rbacsync_binding_status",
-		Help: "The number of RoleBindings and ClusterRoleBIndings configured by the controller and their statuses",
+		Help: "The number of RoleBindings and ClusterRoleBindings configured by the controller and their statuses",
 	}, []string{"kind", "status"})
 
 	// Metrics for Mapper/GSuite
