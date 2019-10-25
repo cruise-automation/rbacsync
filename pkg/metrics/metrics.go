@@ -5,6 +5,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+const (
+	MetricsRBACSyncConfig        = "RBACSyncConfig"
+	MetricsClusterRBACSyncConfig = "ClusterRBACSyncConfig"
+
+	MetricsRoleBinding        = "RoleBinding"
+	MetricsClusterRoleBinding = "ClusterRoleBinding"
+)
+
 var (
 	// Metrics for Controller
 	RBACSyncConfigStatus = promauto.NewGaugeVec(prometheus.GaugeOpts{
