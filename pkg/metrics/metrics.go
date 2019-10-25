@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	MetricsRBACSyncConfig        = "RBACSyncConfig"
-	MetricsClusterRBACSyncConfig = "ClusterRBACSyncConfig"
+	RBACSyncConfig        = "RBACSyncConfig"
+	ClusterRBACSyncConfig = "ClusterRBACSyncConfig"
 
-	MetricsRoleBinding        = "RoleBinding"
-	MetricsClusterRoleBinding = "ClusterRoleBinding"
+	RoleBinding        = "RoleBinding"
+	ClusterRoleBinding = "ClusterRoleBinding"
 )
 
 var (
@@ -25,10 +25,10 @@ var (
 	}, []string{"kind", "status"})
 
 	// Metrics for Mapper/GSuite
-	RBACSyncGsuiteClientCreationStatus = promauto.NewCounter(prometheus.CounterOpts{
+	RBACSyncGsuiteClientCreationStatus = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "rbacsync_gsuite_client_creation_status",
 		Help: "Total number of the status of gsuite client creations",
-	})
+	}, []string{"status"})
 	RBACSyncGsuiteMembersStatus = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "rbacsync_gsuite_members_status",
 		Help: "Total number of the status of calls to gsuite with labels for state",

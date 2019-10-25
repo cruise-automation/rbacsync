@@ -111,11 +111,12 @@ func (g *Grouper) Members(group string) ([]rbacv1.Subject, error) {
 	ctx := context.TODO()
 	client, err := g.service(ctx)
 	if err != nil {
+		metrics.RBACSyncGsuiteClientCreationStatus.WithLabelValues("Failed").Inc()
 		return nil, errors.Wrapf(groups.ErrUnknown,
 			"unable to determine group members, an error occurred creating gsuite client: %v",
 			err)
 	}
-	metrics.RBACSyncGsuiteClientCreationStatus.Inc()
+	metrics.RBACSyncGsuiteClientCreationStatus.WithLabelValues("Succeeded").Inc()
 
 	var (
 		tctx, cancel = context.WithTimeout(ctx, g.timeout)
