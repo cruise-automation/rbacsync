@@ -139,24 +139,36 @@ func (g *Grouper) Members(group string) ([]rbacv1.Subject, error) {
 
 		switch {
 		case isNotFound(err):
+			metrics.RBACSyncGsuiteMembersLatency.WithLabelValues("NotFound").Observe(
+				float64(time.Since(startTime).Nanoseconds()) / float64(time.Second),
+			)
 			metrics.RBACSyncGsuiteMembersStatus.WithLabelValues("NotFound").Inc()
 			return nil, errors.Wrapf(groups.ErrNotFound, "gsuite does not have group: %v", err)
 		case isTimeout(tctx):
+			metrics.RBACSyncGsuiteMembersLatency.WithLabelValues("Timeout").Observe(
+				float64(time.Since(startTime).Nanoseconds()) / float64(time.Second),
+			)
 			metrics.RBACSyncGsuiteMembersStatus.WithLabelValues("Timeout").Inc()
 			return nil, errors.Wrapf(groups.ErrTimeout, "timeout calling gsuite api: %v", err)
 		case isCanceled(tctx):
+			metrics.RBACSyncGsuiteMembersLatency.WithLabelValues("Canceled").Observe(
+				float64(time.Since(startTime).Nanoseconds()) / float64(time.Second),
+			)
 			metrics.RBACSyncGsuiteMembersStatus.WithLabelValues("Canceled").Inc()
 			return nil, errors.Wrapf(groups.ErrCanceled, "the context canceled the call to gsuite: %v", err)
 		default:
+			metrics.RBACSyncGsuiteMembersLatency.WithLabelValues("Unknown").Observe(
+				float64(time.Since(startTime).Nanoseconds()) / float64(time.Second),
+			)
 			metrics.RBACSyncGsuiteMembersStatus.WithLabelValues("Unknown").Inc()
 			return nil, errors.Wrapf(groups.ErrUnknown, "error retrieving group members: %v", err)
 		}
 
 	}
-	metrics.RBACSyncGsuiteMembersLatency.Observe(
+	metrics.RBACSyncGsuiteMembersLatency.WithLabelValues("Succeeded").Observe(
 		float64(time.Since(startTime).Nanoseconds()) / float64(time.Second),
 	)
-	metrics.RBACSyncGsuiteMembersStatus.WithLabelValues("OK").Inc()
+	metrics.RBACSyncGsuiteMembersStatus.WithLabelValues("Succeeded").Inc()
 
 	// If you're trying to find some nasty memory allocation, it might be here.
 	// Grouper interface should be converted to callback style if this is a
