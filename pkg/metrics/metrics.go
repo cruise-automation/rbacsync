@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	RBACSyncConfig        = "RBACSyncConfig"
-	ClusterRBACSyncConfig = "ClusterRBACSyncConfig"
+	LabelKindRBACSyncConfig        = "RBACSyncConfig"
+	LabelKindClusterRBACSyncConfig = "ClusterRBACSyncConfig"
 
-	RoleBinding        = "RoleBinding"
-	ClusterRoleBinding = "ClusterRoleBinding"
+	LabelKindRoleBinding        = "RoleBinding"
+	LabelKindClusterRoleBinding = "ClusterRoleBinding"
 )
 
 var (
