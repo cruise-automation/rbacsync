@@ -18,10 +18,11 @@ package controller
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"k8s.io/klog"
 	"testing"
 	"time"
+
+	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	rbacsyncv1alpha "github.com/cruise-automation/rbacsync/pkg/apis/rbacsync/v1alpha"
 	"github.com/cruise-automation/rbacsync/pkg/checks"
@@ -116,7 +117,7 @@ func TestControllerRBACSyncConfig(t *testing.T) {
 				// the controller. It just creates the binding twice. We may
 				// change this to avoid extra round trip in these cases. We
 				// should probably actually warn.
-				"Warning BindingError duplicate binding duplicates-group0-role0 ignored",
+				"Warning BindingDuplicated duplicate binding duplicates-group0-role0 ignored",
 				"Normal BindingConfigured RoleBinding testing/duplicates-group0-role1 configured",
 				"Normal BindingConfigured RoleBinding testing/duplicates-upstream-role0 configured",
 			},
@@ -256,7 +257,7 @@ func TestControllerClusterRBACSyncConfig(t *testing.T) {
 				// the controller. It just creates the binding twice. We may
 				// change this to avoid extra round trip in these cases. We
 				// should probably actually warn.
-				"Warning BindingError duplicate binding duplicates-group0-role0 ignored",
+				"Warning BindingDuplicated duplicate binding duplicates-group0-role0 ignored",
 				"Normal BindingConfigured ClusterRoleBinding duplicates-group0-role1 configured",
 				"Normal BindingConfigured ClusterRoleBinding duplicates-upstream-role0 configured",
 			},

@@ -234,7 +234,7 @@ debugging.
 To use GSuite, you'll need a service account with "G Suite Domain-Wide
 Delegation of Authority". It's recommended to read the
 [guide](https://developers.google.com/admin-sdk/directory/v1/guides/delegation)
-to understand how this works in cause you run into issues. The blog
+to understand how this works in case you run into issues. The blog
 [Navigating the Google Suite Directory
 API](https://www.fin.com/post/2017/10/navigating-google-suite-directory-api)
 may also provide some insight.
