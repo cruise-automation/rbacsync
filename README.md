@@ -488,7 +488,7 @@ Falso ollow this practice to have a healthy project!
 
 # License
 
-Copyright 2018 GM Cruise LLC
+Copyright 2018 Cruise LLC
 
 Licensed under the [Apache License Version 2.0](LICENSE) (the "License");
 you may not use this project except in compliance with the License.
