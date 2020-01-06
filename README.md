@@ -72,7 +72,7 @@ kind: ClusterRBACSyncConfig
 metadata:
   name: example-simple
 spec:
-  # Defines the roleRef to use against the subects defined above.
+  # Defines the roleRef to use against the subjects defined above.
   bindings:
   - group: mygroup-admin@getcruise.com
     roleRef:
@@ -226,7 +226,7 @@ Usage of bin/rbacsync:
 ```
 
 In configuring upstreams, you'll likely have to add one or more flags. Note
-that you can also increase logging granulatiy, if you need more in depth
+that you can also increase logging granularity, if you need more in depth
 debugging.
 
 #### Enabling GSuite Group Configuration
@@ -425,11 +425,11 @@ You'll need cluster admin to perform this operation.
 Release Process
 ---------------
 
-RBACSync is versioned using [semantic versioing](https://semver.org/). For the
+RBACSync is versioned using [semantic versioning](https://semver.org/). For the
 most part, patch releases should be only bug fixes, minor releases can have
 backwards compatible feature introductions and major releases are for breaking
 changes. If you can't decide whether a feature or change is breaking, err on
-the side of caution when incrementing the verion number and just do it.
+the side of caution when incrementing the version number and just do it.
 
 The release process for rbacsync is triggered with tags. Every build in master
 will pickup the tag and create a version number relative, using a git
@@ -458,7 +458,7 @@ rbacsync 0.1.0
 
 With this release, we introduce support for Google Groups API with
 GSuite Directory SDK. This allows one to configure groups without
-declared memberships that are queryed to the GSuite upstream resource.
+declared memberships that are queried to the GSuite upstream resource.
 ```
 
 There may be releases with complex information for upgrades and caveats, so
@@ -484,7 +484,7 @@ to be compatible with markdown.
 
 While this is an extra step when releasing the software, it is very helpful
 when looking at a project to see its releases properly documented in github.
-Falso ollow this practice to have a healthy project!
+Also follow this practice to have a healthy project!
 
 # License
 
