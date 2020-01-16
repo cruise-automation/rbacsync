@@ -77,7 +77,7 @@ spec:
   - group: mygroup-admin@getcruise.com
     roleRef:
       apiGroup: rbac.authorization.k8s.io
-      kind: Role
+      kind: ClusterRole
       name: cluster-admin
 ```
 
