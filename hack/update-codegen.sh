@@ -18,25 +18,19 @@
 set -o errexit
 set -o nounset
 set -o pipefail
-set -o xtrace
 
-if [[ -z "${GOPATH}" ]]; then
-  GOPATH=~/go
-fi
-
-if [[ ! -d "${GOPATH}/src/k8s.io/code-generator" ]]; then
-  echo "k8s.io/code-generator missing from GOPATH"
-  exit 1
-fi
-
-cd ${GOPATH}/src/k8s.io/code-generator
+SCRIPT_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+CODEGEN_PKG=${CODEGEN_PKG:-$(cd "${SCRIPT_ROOT}"; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../code-generator)}
 
 pkgroot=github.com/cruise-automation/rbacsync
 
-./generate-groups.sh \
+# TODO(stevvooe): Once new code-generator is released with 1.18, GOPATH is no
+# longer required for generation and this variable can be removed.
+GOPATH="$(go env GOPATH)" bash "${CODEGEN_PKG}"/generate-groups.sh \
   all \
-  github.com/cruise-automation/rbacsync/pkg/generated \
-  github.com/cruise-automation/rbacsync/pkg/apis \
+  "${pkgroot}"/pkg/generated \
+  "${pkgroot}"/pkg/apis \
   rbacsync:v1alpha \
+  --output-base "$(dirname "${BASH_SOURCE[0]}")/../../.." \
+  --go-header-file "${SCRIPT_ROOT}"/hack/boilerplate.go.txt
   $@
-

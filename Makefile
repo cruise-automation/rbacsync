@@ -23,9 +23,8 @@ COVERPACKAGES=$(shell go list ./... | grep -v /vendor/ | grep -v /generated/ | g
 
 GO_LDFLAGS=-ldflags '-s -w -X $(PKG)/version.Version=$(VERSION) -X $(PKG)/version.Revision=$(REVISION) -X $(PKG)/version.Package=$(PKG) $(EXTRA_LDFLAGS)'
 TESTFLAGS=-race -v
-COVERFLAGS=-coverpkg=$(COVERPACKAGES) -covermode=atomic -coverprofile=coverage.out
 
-.PHONY: all generate build test binaries clean FORCE vndr image deploy test-coverage .deps.coverage
+.PHONY: all generate build test binaries clean FORCE image deploy
 
 all: binaries
 FORCE: # force targets to run no matter what
@@ -44,16 +43,6 @@ bin/%: cmd/% FORCE
 test:
 	go test ${TESTFLAGS} ${PACKAGES} -logtostderr # for some reason, this flag only works on the end
 
-test-coverage: .deps.coverage
-	go test ${TESTFLAGS} ${COVERFLAGS} ${PACKAGES} -logtostderr # for some reason, this flag only works on the end
-	gocov convert coverage.out | gocov-xml > coverage.xml
-	go tool cover -html coverage.out -o coverage.html
-
-.deps.coverage:
-	# Installs coverage deps using go get. Should be replaced by something better.
-	go get github.com/axw/gocov/...
-	go get github.com/AlekSi/gocov-xml
-
 image:
 	docker build -t rbacsync:${VERSION_TAG} .
 
@@ -68,9 +57,6 @@ endif
 deploy: push
 	kubectl apply -f deploy/
 	kubectl set image deploy/rbacsync rbacsync=${REGISTRY}rbacsync:${VERSION_TAG}
-
-vndr:
-	vndr
 
 clean:
 	rm -rf bin/*

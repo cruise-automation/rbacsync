@@ -5,7 +5,7 @@ services:
 language: go
 
 go:
-- "1.11.x"
+- "1.13.x"
 
 go_import_path: github.com/cruise-automation/rbacsync
 
@@ -16,6 +16,5 @@ install:
 
 script:
 - GIT_CHECK_EXCLUDE="./vendor" git-validation -q -run DCO,short-subject,dangling-whitespace
-# TODO(stevvooe): Add vendor check validation.
 - make build
 - make test
