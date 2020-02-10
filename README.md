@@ -50,7 +50,7 @@ scope or namespace scope:
 | RBACSyncConfig             | Namespaced | Maps groups to users to create namespaced `RoleBindings` |
 | ClusterRBACSyncConfig      | Cluster    | Maps groups to users to create `ClusterRoleBindings`     |
 
-To define groups with RoleBindings within a namespace, you'll need to create an
+To define groups with RoleBindings within a namespace, you will need to create an
 RBACSyncConfig. To define groups that create ClusterRoleBindings, you'll need
 to create ClusterRBACSyncConfig.
 
