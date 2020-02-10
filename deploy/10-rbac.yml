@@ -17,19 +17,21 @@ rules:
     "clusterrbacsyncconfigs"
     ]
   verbs: ["get", "list", "watch"]
+# "bind" and "escalate" are not supported until Kubernetes 1.12. When deploying to
+# versions >= 1.12, you can comment out the '*' configs, which provide cluster-admin and
+# just use the configuration here.
+#
+# This is ignored prior to 1.12.
+#
+# See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#privilege-escalation-prevention-and-bootstrapping for details.
+# - apiGroups: ["rbac.authorization.k8s.io"]
+#   resources: ["clusterroles", "roles"]
+#   verbs: ["bind", "escalate"]
 - apiGroups: ["rbac.authorization.k8s.io"]
   resources: ["clusterrolebindings", "rolebindings"]
   verbs: [
-    "get", "list", "watch", "create", "update", "patch", "delete",
-
-    # "escalate" is not supported until Kuberenetes 1.12. When deploying to
-    # 1.12, you can comment out the '*' configs, which privde cluster-admin and
-    # just use the confuration called out here.
-    #
-    # This is ignored prior to 1.12.
-    #
-    # See https://kubernetes.io/docs/reference/access-authn-authz/rbac/#privilege-escalation-prevention-and-bootstrapping for details.
-    "escalate"] 
+    "get", "list", "watch", "create", "update", "patch", "delete"
+  ]
 - apiGroups: [""]
   resources: ["events"]
   verbs: ["get", "list", "watch", "create", "update", "patch"] 
