@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM golang:1.11-alpine as build
+FROM golang:1.13-alpine as build
 RUN apk --no-cache add ca-certificates make git gcc libc-dev
 WORKDIR /go/src/github.com/cruise-automation/rbacsync
 ADD . /go/src/github.com/cruise-automation/rbacsync
