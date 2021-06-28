@@ -20,6 +20,7 @@ package v1alpha
 
 import (
 	"time"
+	"context"
 
 	v1alpha "github.com/cruise-automation/rbacsync/pkg/apis/rbacsync/v1alpha"
 	scheme "github.com/cruise-automation/rbacsync/pkg/generated/clientset/versioned/scheme"
@@ -71,7 +72,7 @@ func (c *rBACSyncConfigs) Get(name string, options v1.GetOptions) (result *v1alp
 		Resource("rbacsyncconfigs").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -88,7 +89,7 @@ func (c *rBACSyncConfigs) List(opts v1.ListOptions) (result *v1alpha.RBACSyncCon
 		Resource("rbacsyncconfigs").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -105,7 +106,7 @@ func (c *rBACSyncConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("rbacsyncconfigs").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(context.Background())
 }
 
 // Create takes the representation of a rBACSyncConfig and creates it.  Returns the server's representation of the rBACSyncConfig, and an error, if there is any.
@@ -115,7 +116,7 @@ func (c *rBACSyncConfigs) Create(rBACSyncConfig *v1alpha.RBACSyncConfig) (result
 		Namespace(c.ns).
 		Resource("rbacsyncconfigs").
 		Body(rBACSyncConfig).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -128,7 +129,7 @@ func (c *rBACSyncConfigs) Update(rBACSyncConfig *v1alpha.RBACSyncConfig) (result
 		Resource("rbacsyncconfigs").
 		Name(rBACSyncConfig.Name).
 		Body(rBACSyncConfig).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -144,7 +145,7 @@ func (c *rBACSyncConfigs) UpdateStatus(rBACSyncConfig *v1alpha.RBACSyncConfig) (
 		Name(rBACSyncConfig.Name).
 		SubResource("status").
 		Body(rBACSyncConfig).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -156,7 +157,7 @@ func (c *rBACSyncConfigs) Delete(name string, options *v1.DeleteOptions) error {
 		Resource("rbacsyncconfigs").
 		Name(name).
 		Body(options).
-		Do().
+		Do(context.Background()).
 		Error()
 }
 
@@ -172,7 +173,7 @@ func (c *rBACSyncConfigs) DeleteCollection(options *v1.DeleteOptions, listOption
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Timeout(timeout).
 		Body(options).
-		Do().
+		Do(context.Background()).
 		Error()
 }
 
@@ -185,7 +186,7 @@ func (c *rBACSyncConfigs) Patch(name string, pt types.PatchType, data []byte, su
 		SubResource(subresources...).
 		Name(name).
 		Body(data).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }

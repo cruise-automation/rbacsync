@@ -17,6 +17,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -189,7 +190,7 @@ func TestControllerRBACSyncConfig(t *testing.T) {
 
 			// TODO(sday): Make sure we aren't creating rolebindings outside
 			// our namespace by querying all of them across all namespaces.
-			rbs, err := ctlr.kubeclient.RbacV1().RoleBindings(testcase.input.Namespace).List(metav1.ListOptions{})
+			rbs, err := ctlr.kubeclient.RbacV1().RoleBindings(testcase.input.Namespace).List(context.Background(), metav1.ListOptions{})
 			checks.Err(t, err)
 
 			expected := makeExpectedRoleBindings(t, created, ctlr.resolveGroups(created.Spec.Memberships))
@@ -333,7 +334,7 @@ func TestControllerClusterRBACSyncConfig(t *testing.T) {
 
 			events := collectEvents(t, ctlr)
 
-			rbs, err := ctlr.kubeclient.RbacV1().ClusterRoleBindings().List(metav1.ListOptions{})
+			rbs, err := ctlr.kubeclient.RbacV1().ClusterRoleBindings().List(context.Background(), metav1.ListOptions{})
 			checks.Err(t, err)
 
 			expected := makeExpectedClusterRoleBindings(t, created, ctlr.resolveGroups(created.Spec.Memberships))
@@ -398,7 +399,7 @@ func TestControllerRBACSyncConfigNoLeaks(t *testing.T) {
 		"Normal BindingDeleted RoleBinding testing/notleaky-group0-role1 deleted",
 	}, events, "should see creation and deletion events from full lifecycle")
 
-	rbs, err := ctlr.kubeclient.RbacV1().RoleBindings(rsc.Namespace).List(metav1.ListOptions{})
+	rbs, err := ctlr.kubeclient.RbacV1().RoleBindings(rsc.Namespace).List(context.Background(), metav1.ListOptions{})
 	checks.Err(t, err)
 
 	// Calculate the expected bindings based on the current config. The removed
@@ -457,7 +458,7 @@ func TestControllerClusterRBACSyncConfigNoLeaks(t *testing.T) {
 		"Normal BindingDeleted ClusterRoleBinding notleaky-group0-role1 deleted",
 	}, events, "should see creation and deletion events from full lifecycle")
 
-	crbs, err := ctlr.kubeclient.RbacV1().ClusterRoleBindings().List(metav1.ListOptions{})
+	crbs, err := ctlr.kubeclient.RbacV1().ClusterRoleBindings().List(context.Background(), metav1.ListOptions{})
 	checks.Err(t, err)
 
 	// Calculate the expected bindings based on the current config. The removed
@@ -508,7 +509,7 @@ func TestControllerRBACSyncConfigGrouperError(t *testing.T) {
 
 	events := collectEvents(t, ctlr)
 
-	rbs, err := ctlr.kubeclient.RbacV1().RoleBindings(rsc.Namespace).List(metav1.ListOptions{})
+	rbs, err := ctlr.kubeclient.RbacV1().RoleBindings(rsc.Namespace).List(context.Background(), metav1.ListOptions{})
 	checks.Err(t, err)
 
 	expected := makeExpectedRoleBindings(t, created, ctlr.resolveGroups(created.Spec.Memberships))
@@ -526,7 +527,7 @@ func TestControllerRBACSyncConfigGrouperError(t *testing.T) {
 
 	events = collectEvents(t, ctlr)
 
-	rbs, err = ctlr.kubeclient.RbacV1().RoleBindings(rsc.Namespace).List(metav1.ListOptions{})
+	rbs, err = ctlr.kubeclient.RbacV1().RoleBindings(rsc.Namespace).List(context.Background(), metav1.ListOptions{})
 	checks.Err(t, err)
 
 	// Add the subject back in for generating the expected result.
@@ -548,7 +549,7 @@ func TestControllerRBACSyncConfigGrouperError(t *testing.T) {
 
 	events = collectEvents(t, ctlr)
 
-	rbs, err = ctlr.kubeclient.RbacV1().RoleBindings(rsc.Namespace).List(metav1.ListOptions{})
+	rbs, err = ctlr.kubeclient.RbacV1().RoleBindings(rsc.Namespace).List(context.Background(), metav1.ListOptions{})
 	checks.Err(t, err)
 
 	expected = makeExpectedRoleBindings(t, created, ctlr.resolveGroups(created.Spec.Memberships))

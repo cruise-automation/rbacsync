@@ -20,6 +20,7 @@ package v1alpha
 
 import (
 	"time"
+	"context"
 
 	v1alpha "github.com/cruise-automation/rbacsync/pkg/apis/rbacsync/v1alpha"
 	scheme "github.com/cruise-automation/rbacsync/pkg/generated/clientset/versioned/scheme"
@@ -68,7 +69,7 @@ func (c *clusterRBACSyncConfigs) Get(name string, options v1.GetOptions) (result
 		Resource("clusterrbacsyncconfigs").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -84,7 +85,7 @@ func (c *clusterRBACSyncConfigs) List(opts v1.ListOptions) (result *v1alpha.Clus
 		Resource("clusterrbacsyncconfigs").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -100,7 +101,7 @@ func (c *clusterRBACSyncConfigs) Watch(opts v1.ListOptions) (watch.Interface, er
 		Resource("clusterrbacsyncconfigs").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(context.Background())
 }
 
 // Create takes the representation of a clusterRBACSyncConfig and creates it.  Returns the server's representation of the clusterRBACSyncConfig, and an error, if there is any.
@@ -109,7 +110,7 @@ func (c *clusterRBACSyncConfigs) Create(clusterRBACSyncConfig *v1alpha.ClusterRB
 	err = c.client.Post().
 		Resource("clusterrbacsyncconfigs").
 		Body(clusterRBACSyncConfig).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -121,7 +122,7 @@ func (c *clusterRBACSyncConfigs) Update(clusterRBACSyncConfig *v1alpha.ClusterRB
 		Resource("clusterrbacsyncconfigs").
 		Name(clusterRBACSyncConfig.Name).
 		Body(clusterRBACSyncConfig).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -136,7 +137,7 @@ func (c *clusterRBACSyncConfigs) UpdateStatus(clusterRBACSyncConfig *v1alpha.Clu
 		Name(clusterRBACSyncConfig.Name).
 		SubResource("status").
 		Body(clusterRBACSyncConfig).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -147,7 +148,7 @@ func (c *clusterRBACSyncConfigs) Delete(name string, options *v1.DeleteOptions) 
 		Resource("clusterrbacsyncconfigs").
 		Name(name).
 		Body(options).
-		Do().
+		Do(context.Background()).
 		Error()
 }
 
@@ -162,7 +163,7 @@ func (c *clusterRBACSyncConfigs) DeleteCollection(options *v1.DeleteOptions, lis
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Timeout(timeout).
 		Body(options).
-		Do().
+		Do(context.Background()).
 		Error()
 }
 
@@ -174,7 +175,7 @@ func (c *clusterRBACSyncConfigs) Patch(name string, pt types.PatchType, data []b
 		SubResource(subresources...).
 		Name(name).
 		Body(data).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
