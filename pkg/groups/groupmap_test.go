@@ -17,7 +17,7 @@
 package groups
 
 import (
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"testing"
 
 	"github.com/cruise-automation/rbacsync/pkg/checks"

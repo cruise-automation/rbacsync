@@ -38,7 +38,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/cruise-automation/rbacsync/pkg/controller"
 	clientset "github.com/cruise-automation/rbacsync/pkg/generated/clientset/versioned"
