@@ -24,13 +24,11 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd "${SCRIPT_ROOT}"; ls -d -1 ./vendor/k8s.io/code-
 
 pkgroot=github.com/cruise-automation/rbacsync
 
-# TODO(stevvooe): Once new code-generator is released with 1.18, GOPATH is no
-# longer required for generation and this variable can be removed.
-GOPATH="$(go env GOPATH)" bash "${CODEGEN_PKG}"/generate-groups.sh \
+bash "${CODEGEN_PKG}"/generate-groups.sh \
   all \
   "${pkgroot}"/pkg/generated \
   "${pkgroot}"/pkg/apis \
   rbacsync:v1alpha \
-  --output-base "$(dirname "${BASH_SOURCE[0]}")/../../.." \
-  --go-header-file "${SCRIPT_ROOT}"/hack/boilerplate.go.txt
+  --output-base "${SCRIPT_ROOT}/../../.." \
+  --go-header-file "${SCRIPT_ROOT}"/hack/boilerplate.go.txt \
   $@

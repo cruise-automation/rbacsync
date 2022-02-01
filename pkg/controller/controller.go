@@ -17,6 +17,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -40,7 +41,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	rbacsyncv1alpha "github.com/cruise-automation/rbacsync/pkg/apis/rbacsync/v1alpha"
 	clientset "github.com/cruise-automation/rbacsync/pkg/generated/clientset/versioned"
@@ -456,7 +457,7 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 			continue // the binding is still active, move along
 		}
 
-		if err := roleBindings.Delete(rb.Name, nil); err != nil {
+		if err := roleBindings.Delete(context.Background(), rb.Name, metav1.DeleteOptions{}); err != nil {
 			if !kubeerrors.IsNotFound(err) {
 				c.recorder.Eventf(config, corev1.EventTypeWarning,
 					EventReasonBindingError,
@@ -478,7 +479,7 @@ func (c *Controller) handleConfig(config *rbacsyncv1alpha.RBACSyncConfig) error 
 }
 
 func (c *Controller) createOrUpdateRoleBinding(client rbacv1typed.RoleBindingInterface, rb *rbacv1.RoleBinding) (returned *rbacv1.RoleBinding, err error) {
-	returned, err = client.Update(rb)
+	returned, err = client.Update(context.Background(), rb, metav1.UpdateOptions{})
 	if err != nil {
 		if !kubeerrors.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "updating object %v/%v failed", rb.Namespace, rb.Name)
@@ -488,7 +489,7 @@ func (c *Controller) createOrUpdateRoleBinding(client rbacv1typed.RoleBindingInt
 		// since an update will result in a create for a rolebinding. We have
 		// this code here in case that changes and to work with the unit
 		// testing facilities.
-		returned, err = client.Create(rb)
+		returned, err = client.Create(context.Background(), rb, metav1.CreateOptions{})
 		if err != nil {
 			return nil, errors.Wrapf(err, "creating object %v/%v failed", rb.Namespace, rb.Name)
 		}
@@ -624,7 +625,7 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 			continue // the binding is still active, move along
 		}
 
-		if err := clusterRoleBindings.Delete(crb.Name, nil); err != nil {
+		if err := clusterRoleBindings.Delete(context.Background(), crb.Name, metav1.DeleteOptions{}); err != nil {
 			if !kubeerrors.IsNotFound(err) {
 				c.recorder.Eventf(config, corev1.EventTypeWarning,
 					EventReasonBindingError,
@@ -645,7 +646,7 @@ func (c *Controller) handleClusterConfig(config *rbacsyncv1alpha.ClusterRBACSync
 }
 
 func (c *Controller) createOrUpdateClusterRoleBinding(client rbacv1typed.ClusterRoleBindingInterface, crb *rbacv1.ClusterRoleBinding) (returned *rbacv1.ClusterRoleBinding, err error) {
-	returned, err = client.Update(crb)
+	returned, err = client.Update(context.Background(), crb, metav1.UpdateOptions{})
 	if err != nil {
 		if !kubeerrors.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "updating object %v failed", crb.Name)
@@ -655,7 +656,7 @@ func (c *Controller) createOrUpdateClusterRoleBinding(client rbacv1typed.Cluster
 		// since an update will result in a create for a rolebinding. We have
 		// this code here in case that changes and to work with the unit
 		// testing facilities.
-		returned, err = client.Create(crb)
+		returned, err = client.Create(context.Background(), crb, metav1.CreateOptions{})
 		if err != nil {
 			return nil, errors.Wrapf(err, "creating object %v failed", crb.Name)
 		}
