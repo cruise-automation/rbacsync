@@ -669,9 +669,7 @@ func (c *Controller) resolveGroups(memberships []rbacsyncv1alpha.Membership) gro
 	gm := make(groups.GroupMap)
 
 	for _, group := range memberships {
-		for _, subject := range group.Subjects {
-			gm[group.Group] = append(gm[group.Group], subject)
-		}
+		gm[group.Group] = append(gm[group.Group], group.Subjects...)
 	}
 
 	// normalize them all
